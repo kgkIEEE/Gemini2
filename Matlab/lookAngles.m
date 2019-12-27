@@ -88,7 +88,7 @@ plot3(satellite3d(:,1),satellite3d(:,2),satellite3d(:,3));
 
 % Compute the ECI position of the ground observer over time
 observer3d = zeros(count,3);
-latitude = 0.0 * D2R;
+latitude = 45.0 * D2R;
 longitude = 0.0;
 wEarth = 2*pi/1440.0;
 for t = 1:count
@@ -114,10 +114,14 @@ end
 
 figure('Name','Vector difference between satellite and observer');
 plot3(delta(:,1),delta(:,2),delta(:,3));
-figure('Name','Angle between satellite and observer');
-plot(elevation);
-figure('Name','Distance between observer and satellite');
+
+figure('Name','Azimuth');
+plot(az);
+figure('Name','Elevation');
+plot(el);
+figure('Name','Range');
 plot(range);
+
 
 function jDate = computeJulianDate(dateTimeString)
     % Date and Time at start of this simulation
@@ -126,7 +130,7 @@ end
 
 function gmst = computeGMST(jDate)
 
-    % Compute Julian Date
+    % Compute days since 1-Jan-2000
     % Jan 1, 2000 Julian Date is 2,451,544.5
     Tu = (jDate - 2451545.0)/36525; % UT elapsed since 1/1/2000 at noon
 
