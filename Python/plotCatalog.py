@@ -54,25 +54,28 @@ def plotTLE(catalog, tlePlotFilename):
         print(i,xdata[i],ydata[i],zdata[i])
         i = i+1
 
+    #TODO: add histogram plots of inclination, eccentricty and mean motion
+    #TODO: add 2d plots of inclination vs mean motion, inclination vs eccentricity
     fig = plt.figure()
-    fig.suptitle('Catalog Plot')
+    fig.suptitle('Catalog 3D Plot')
     ax = plt.axes(projection='3d')
     ax.set_xlabel('Inclination')
     ax.set_ylabel('Eccentricity')
     ax.set_zlabel('Mean Motion')
-    ax.scatter3D(xdata, ydata, zdata, c=zdata, cmap='Greens');
+    ax.scatter3D(xdata, ydata, zdata, c=zdata);
     plt.show()
 
 parser = argparse.ArgumentParser(description='Read TLE files')
 parser.add_argument("--tleFilename")
 args = parser.parse_args()
 
-tleDefaultFilename = 'catalogTest.txt'
-tleDefaultPlotFilename = 'catalogTest.plt'
+tleDefaultFilename = 'catalogTest'
 if args.tleFilename:
-    tleFilename = args.tleFilename
+    tleFilename = args.tleFilename + '.txt'
+    tlePlotFilename = args.tleFilename + '.plt'
 else:
-    tleFilename = tleDefaultFilename
+    tleFilename = tleDefaultFilename + '.txt'
+    tlePlotFilename = tleDefaultFilename + '.plt'
 
 catalog = readTLE(tleFilename)
-plotTLE(catalog, tleDefaultPlotFilename)
+plotTLE(catalog, tlePlotFilename)
