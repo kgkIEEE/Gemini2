@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import sys, getopt
+import argparse
 
 from skyfield import api
 from skyfield.api import EarthSatellite
@@ -6,7 +8,7 @@ from skyfield.api import Topos, load
 
 MAXDISTANCE = 1000000000.0
 
-def findVisibility(satellite, site, times):
+def findVisibility(satellite, site, times, passes, trajectory):
 
     satellitePasses = []
     aboveHorizon = False
@@ -25,9 +27,10 @@ def findVisibility(satellite, site, times):
 
     for i in range(len(el.degrees[:])):
         if el.degrees[i] > 0.0:
-            print("Visible: ", f"{satellite.model.satnum:6d}", times[i].utc_iso(), \
-                f"{distance.km[i]:10.3f}", f"{az.degrees[i]:7.2f}", f"{el.degrees[i]:7.2f}", \
-                times[i], geocentric.position.km[:,i])
+            if(trajectory):
+                print("Visible: ", f"{satellite.model.satnum:6d}", times[i].utc_iso(), \
+                    f"{distance.km[i]:10.3f}", f"{az.degrees[i]:7.2f}", f"{el.degrees[i]:7.2f}", \
+                    times[i], geocentric.position.km[:,i])
             if el.degrees[i] > maxEl:
                 maxEl = el.degrees[i]
                 maxEl_az = az.degrees[i]
@@ -60,13 +63,14 @@ def findVisibility(satellite, site, times):
                                         int(setAz+0.5), int(minDistance), \
                                         int(maxDistance)))
 
-                print("Pass:    ", f"{satellite.model.satnum:6d}", riseTime.utc_iso(), \
-                    f"{1440*(setTime-riseTime):7.2f}", \
-                    direction, \
-                    int(maxEl+0.5), int(maxEl_az+0.5),\
-                    int(maxEl_range), int(riseAz+0.5), \
-                    int(setAz+0.5), int(minDistance), \
-                    int(maxDistance))
+                if(passes):
+                    print("Pass:    ", f"{satellite.model.satnum:6d}", riseTime.utc_iso(), \
+                        f"{1440*(setTime-riseTime):7.2f}", \
+                        direction, \
+                        int(maxEl+0.5), int(maxEl_az+0.5),\
+                        int(maxEl_range), int(riseAz+0.5), \
+                        int(setAz+0.5), int(minDistance), \
+                        int(maxDistance))
 
                 riseTime = 0.
                 setTime = 0.
@@ -76,10 +80,10 @@ def findVisibility(satellite, site, times):
                 minDistance = MAXDISTANCE
     return satellitePasses
 
-def computeSchedule(catalog,groundStation, times):
+def computeSchedule(catalog,groundStation, times, passes, trajectory):
     passes = []
     for i in range(len(catalog)):
-        passes.append(findVisibility(catalog[i],groundStation, times))
+        passes.append(findVisibility(catalog[i],groundStation, times, passes, trajectory))
     return passes
 
 def readTLE(tleFilename):
@@ -115,11 +119,59 @@ def readTLE(tleFilename):
     print("Read ", len(catalog), "TLEs into catalog")
     return catalog
 
-groundStation = Topos('8.7 N', '167.7 W')
-ts = load.timescale()
-times = ts.utc(2020, 1, 1, 0, range(0,1440))
+def main(argv):
 
-catalog = readTLE('catalogTest.txt')
-schedule = computeSchedule(catalog, groundStation, times)
+    # Defaults
+    inputFile = 'catalogTest.txt'
+    outputFile = 'scheduleTest.txt'
+    start = '01012020'
+    duration = 1        # one day
+    observerLatitude = 0.0
+    observerLongitude = 0.0
+    passes = True
+    trajectory = False
 
-print("Schedule length:",len(schedule))
+    try:
+        opts, args = getopt.getopt(argv,"hi:o:",["ifile=","ofile="])
+    except getopt.GetoptError:
+        print('generateSchedule.py -i <inputFile> -o <outputFile>', \
+            ' -start <data> -duration <days>', \
+            ' -obslat <observerLatitude> -obslon <observerLongitude>',\
+            ' -passes -trajectory')
+        sys.exit(2)
+    for opt, arg in opts:
+        if opt == '-h':
+            print('generateSchedule.py -i <inputFile> -o <outputFile>', \
+                ' -start <mmddyyyy> -duration <hours>', \
+                ' -obslat <observerLatitude> -obslon <observerLongitude>',\
+                ' -passes -trajectory')
+            sys.exit()
+        elif opt in ("-i", "--ifile"):
+            inputFile = arg
+        elif opt in ("-o", "--ofile"):
+            outputFile = arg
+        elif opt in ['-start']:
+            start = arg
+        elif opt in ['-duration']:
+            duration = arg
+        elif opt in ['-obslat']:
+            observerLatitude = arg
+        elif opt in ['-obslon']:
+            observerLongitude = arg
+        elif opt in ['-passes']:
+            passes = True
+        elif opt in ['-trajectory']:
+            trajectory = True
+
+    groundStation = Topos(observerLatitude, observerLongitude)
+
+    ts = load.timescale()
+    times = ts.utc(int(start[4:8]), int(start[0:2]), int(start[2:4]), 0, range(0,1440*duration))
+
+    catalog = readTLE(inputFile)
+    schedule = computeSchedule(catalog, groundStation, times, passes, trajectory)
+
+    print("Schedule length:",len(schedule))
+
+if __name__ == "__main__":
+   main(sys.argv[1:])
