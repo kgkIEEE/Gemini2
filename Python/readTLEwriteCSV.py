@@ -60,8 +60,8 @@ def writeSatelliteCSV(catalog, tleDefaultCSVFilename):
                 'rightascension':satellite.model.nodeo, \
                 'eccentricity':satellite.model.ecco, \
                 'argofperigee':satellite.model.argpo, \
-                'meanmotion':satellite.model.mo, \
-                'meananomaly':satellite.model.no})
+                'meananomaly':satellite.model.mo, \
+                'meanmotion':satellite.model.no})
 
 parser = argparse.ArgumentParser(description='Read TLE files')
 parser.add_argument("--tleFilename")
