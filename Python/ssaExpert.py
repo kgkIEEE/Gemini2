@@ -9,7 +9,8 @@ objectMissedPassCount = [0]*(nObjects+1)
 runningMissedPassCount = 0
 
 # Expert system approach to monitoring SSA events and
-# generating recommendations to the SSA operator
+# generating recommendations to the SSA operator to be used
+# for creating training data for machine learning algorithm
 
 # Message types
 # 1. Observation
