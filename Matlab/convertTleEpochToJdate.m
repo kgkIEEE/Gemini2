@@ -10,6 +10,8 @@ function jDate = convertTleEpochToJdate(epoch)
     else
         epochYear = epochYear + 1900;
     end
-    jDate = juliandate(datetime(epochYear,1,1)) + mod(epoch,1000);
+    epochDays = mod(epoch,1000);
+    [mon,day,hr,minute,sec] = days2mdh(epochYear,epochDays);
+    jDate = jday(epochYear,mon,day,hr,minute,sec );
 end
     
