@@ -4,9 +4,11 @@ import random
 
 nSensors = 10
 sensorMissedPassCount = [0]*(nSensors+1)
-nObjects = 100
+nObjects = 300
 objectMissedPassCount = [0]*(nObjects+1)
 runningMissedPassCount = 0
+minSize = -60   # dBsm: 1 square millimeter
+maxSize = 60    # dBsm: 1 million square meters
 
 # Expert system approach to monitoring SSA events and
 # generating recommendations to the SSA operator to be used
@@ -27,7 +29,9 @@ runningMissedPassCount = 0
 
 # Initialize
 def initialize():
-    runningMissedPassCount = 0
+    # Any initialization...
+    pass
+
 
 def uctImportance(size, orbit):
     # Size is an estimated area in dB square meters
@@ -57,33 +61,42 @@ def readMessage(msgDict):
     runningMissedPassCount = 0 # ?
     recommendations = []
     if msgDict['type'] == 'missedPass':
-        sensorMissedPassCount[msgDict['sensorID']] += 1
-        if sensorMissedPassCount[msgDict['sensorID']] > 1:
+        sensorID = int(msgDict['sensorID'])
+        objectID = int(msgDict['objectID'])
+        sensorMissedPassCount[sensorID] += 1
+        if sensorMissedPassCount[sensorID] > 1:
             # Sensor has missed 3 observations in a row
-            recommendations.append('Request sensor status from:',\
-                msgDict['sensorID'])
+            recommendations.append({'Request sensor status from:',\
+                msgDict['sensorID']})
         if runningMissedPassCount > 1:
             recommendations.append('Request network status update')
-        if objectMissedPassCount[msgDict['objectID']] >1:
+        if objectMissedPassCount[objectID] >1:
             # There have been at least 3 missed passes on this object
-            objectMissedPassCount[msgDict['objectID']] += 1
-            recommendations.append('Request lost object search for: ',\
-                msgDict['objectID'])
+            objectMissedPassCount[objectID] += 1
+            recommendations.append({'Request lost object search for: ',\
+                msgDict['objectID']})
     if msgDict['type'] == 'observation':
         runningMissedPassCount = 0
-        sensorMissedPassCount[msgDict['sensorID']] = 0
-        objectMissedPassCount[msgDict['objectID']] = 0
+        sensorID = int(msgDict['sensorID'])
+        objectID = int(msgDict['objectID'])
+        sensorMissedPassCount[sensorID] = 0
+        objectMissedPassCount[objectID] = 0
         if msgDict['objectType'] == 'known':
-            recommendations.append('Request catalog update for object:',\
-                msgDict['objectID'])
+            recommendations.append({'Request catalog update for object:',\
+                msgDict['objectID']})
         elif msgDict['objectType'] == 'unknown':
             # New/unknown object detected
             # Search for possible sources
-            recommendations.append('Request source analysis for object:',\
-                msgDict['objectID'])
-            # Evaluate potential collision risk
-            recommendations.append('Request collision risk assessment for object:',\
-                msgDict['objectID'])
+            objectSize = int(msgDict['objectSize'])
+            if objectSize > -30:
+                recommendations.append({'Request source analysis for object:',\
+                    msgDict['objectID']})
+                # Evaluate potential collision risk
+                recommendations.append({'Request collision risk assessment for object:',\
+                    msgDict['objectID']})
+                if objectSize > 0:
+                    recommendations.append({'Request notification for significant uncataloged object:',\
+                        msgDict['objectID']})
     return recommendations
 
 def validateRecommendations(recommendations):
@@ -96,6 +109,7 @@ def validateRecommendations(recommendations):
 def testSsaExpert():
 
     initialize()
+    print('Initialized')
 
     # There are two primary types of sensor messages
     #   1. Observations
@@ -115,6 +129,7 @@ def testSsaExpert():
         'sensorID':sensorID, 'objectID':objectID, 'priority':'low'}
     recommendations = readMessage(message)
     validateRecommendations(recommendations)
+    print('Test 1: Missed Pass',message,recommendations)
 
     # Test 2: Multiple consecutive missed passes for an object
     #   Generate alert
@@ -133,7 +148,15 @@ def testSsaExpert():
     #       - estimate importance of UCT (size, orbit)
     #       - evaluate probability of collision
     #       - determine potential origin
-
+    sensorID = random.randint(1,nSensors)
+    objectSize = random.randint(minSize,maxSize)
+    message = {'type':'observation', 'time':time.time(), \
+        'sensorID':sensorID, 'objectType':'unknown',\
+        'objectID':str(random.randint(199,299)),\
+        'objectSize':objectSize}
+    recommendations = readMessage(message)
+    validateRecommendations(recommendations)
+    print('Test 5: UCT detected ',message,recommendations)
 
     # Test 6: Normal pass
     #   Generate tasking to evaluate data quality and update catalog
