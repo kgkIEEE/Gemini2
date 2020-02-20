@@ -100,10 +100,10 @@ def readMessage(msgDict):
     return recommendations
 
 def validateRecommendations(recommendations):
+    print('Validation recommendations: ',len(recommendations))
     for recommendation in recommendations:
         print('Recommendation: ',recommendation)
         pass
-
 
 # Test logic
 def testSsaExpert():
@@ -152,7 +152,7 @@ def testSsaExpert():
     objectSize = random.randint(minSize,maxSize)
     message = {'type':'observation', 'time':time.time(), \
         'sensorID':sensorID, 'objectType':'unknown',\
-        'objectID':str(random.randint(199,299)),\
+        'objectID':str(random.randint(200,299)),\
         'objectSize':objectSize}
     recommendations = readMessage(message)
     validateRecommendations(recommendations)
@@ -160,9 +160,27 @@ def testSsaExpert():
 
     # Test 6: Normal pass
     #   Generate tasking to evaluate data quality and update catalog
+    sensorID = random.randint(1,nSensors)
+    objectSize = random.randint(minSize,maxSize)
+    message = {'type':'observation', 'time':time.time(), \
+        'sensorID':sensorID, 'objectType':'known',\
+        'objectID':str(random.randint(100,199)),\
+        'objectSize':objectSize}
+    recommendations = readMessage(message)
+    validateRecommendations(recommendations)
+    print('Test 6: Normal pass',message,recommendations)
 
     # Test 7: Launch notification
     #   Generate sensor tasking to support Launch
+    message = {'type':'launchNotification', 'time':time.time(), \
+        'launchTime':(time.time()-random.randint(1,10)),\
+        'launchPoint':[random.randint(0,90),random.randint(-180,180)],\
+        'objectType':'unknown',\
+        'objectID':str(random.randint(100,199)),\
+        'objectSize':objectSize}
+    recommendations = readMessage(message)
+    validateRecommendations(recommendations)
+    print('Test 7: Launch notification',message,recommendations)
 
 if __name__== "__main__":
   testSsaExpert()
