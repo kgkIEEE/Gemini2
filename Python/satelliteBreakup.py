@@ -5,13 +5,16 @@
 from random import uniform
 from numpy.linalg import norm
 
+from astropy import time
 from astropy import units as u
 from astropy.time import Time
+from astropy.coordinates import SkyCoord, EarthLocation, AltAz
 
 from skyfield.api import EarthSatellite, Topos, load
 
 from poliastro.bodies import Earth
 from poliastro.twobody import Orbit
+from poliastro.spheroid_location import SpheroidLocation
 
 line1 = '1  5398U 71067E   20004.97039155 +.00000142 +00000-0 +43247-4 0  9992'
 line2 = '2  5398 087.6227 269.5184 0065476 094.7647 266.1031 14.33848082536070'
@@ -38,9 +41,10 @@ print(difference)
 topocentric = difference.at(tBreakup)
 alt, az, distance = topocentric.altaz()
 
-
 # Simulate a number of pieces that are ejected randomly from the main body
-nPieces = 16
+nPieces = 4
+nTimeSteps = 10
+timeStep = 100
 ejectionVelocity = 0.4 # km/sec
 
 geocentric = satellite.at(tBreakup)
@@ -63,7 +67,7 @@ print('Mean motion:     ',satellite.model.no) # Mean motion in radians per minut
 
 # Poliastro r and v vectors for the main body
 rVector = [r.km[0], r.km[1], r.km[2]] * u.km
-vVector = [v.km_per_s[0], v.km_per_s[1], v.km_per_s[2]] * u.km/u.s
+# vVector = [v.km_per_s[0], v.km_per_s[1], v.km_per_s[2]] * u.km/u.s
 
 pieces = []
 tB = Time(tBreakup.tt,format='jd',scale='utc')
@@ -84,29 +88,41 @@ for i in range(0,nPieces):
 # Generate orbital element sets for the pieces
 print('Pieces')
 for piece in pieces:
-    print(piece)
-
-from astropy import time, units as u
+    print('Piece:',piece)
 
 pieceOrbits = []
 for piece in pieces:
     rVector = []
-    for i in range(0,100):
-        rVector.append(piece.propagate(time.TimeDelta(i * u.min)))
+    for i in range(0,nTimeSteps):
+        rVector.append(piece.propagate(time.TimeDelta(timeStep * i * u.min)))
+    print('rVector:',rVector)
     pieceOrbits.append(rVector)
 
-print('Piece Orbit [0][0]',pieceOrbits[0][0])
-print('Piece Orbit [15][99]',pieceOrbits[15][99])
-
 # Find when pieces are visible to the sensor
-from poliastro.spheroid_location import SpheroidLocation
-
-sensor_coordinates = [0.0 * u.deg, 0.0 * u.deg, 0 * u.m]
-
-sensorLocation = SpheroidLocation(*sensor_coordinates, Earth)
-
-for i in range(0,16):
-    for j in range(0,100):
-        r,v = pieceOrbits[15][99].rv()
-        if sensorLocation.is_visible(*r):
-            print('Visible at ',i,j)
+#observing_time = Time(jd=tBreakup.tt)
+#sensor_coordinates = [0.0 * u.deg, 0.0 * u.deg, 0 * u.m]
+#sensorLocation = SpheroidLocation(*sensor_coordinates, Earth)
+sensorLocation = EarthLocation(lat=45.0, lon=72.0, height=100.0)
+angles = []
+for i in range(0,nPieces):
+    for j in range(0,nTimeSteps):
+        r,v = pieceOrbits[i][j].rv()
+        tVal = pieceOrbits[i][j].epoch
+        # sat_angles = pieceOrbits[i][j].transform_to(\
+        #     AltAz(\
+        #     representation_type='cartesian',
+        #     x=r[0], y=r[1], z=r[2],
+        #     frame='gcrs',
+        #     obstime=tVal,
+        #     location=sensorLocation))
+        sky_gcrs=SkyCoord(
+            representation_type='cartesian',
+            x=r[0], y=r[1], z=r[2],
+            frame='gcrs')
+        print('sky:',sky_gcrs)
+        viewAngle = sky_gcrs.transform_to(AltAz(obstime=tVal,location=sensorLocation))
+        angles.append(viewAngle)
+        # pos_ecef = sky_gcrs.transform_to('itrs')
+        print('Angles:',i,j,int(viewAngle.alt.value),int(viewAngle.az.value),r[0],r[1],r[2])
+        # if sat_angles.alt > 0.0:
+        #     print('Visible at ',i,j,tVal,sat_angles)

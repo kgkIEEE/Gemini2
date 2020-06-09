@@ -100,7 +100,7 @@ def readMessage(msgDict):
     return recommendations
 
 def validateRecommendations(recommendations):
-    print('Validation recommendations: ',len(recommendations))
+    print('Validate recommendations: ',len(recommendations))
     for recommendation in recommendations:
         print('Recommendation: ',recommendation)
         pass
@@ -123,13 +123,13 @@ def testSsaExpert():
     # Test 1: Missed pass
     #   One pass missed, do nothing unless priority target
     #       then generate tasking readMessage
+    print('Test 1: Missed Pass',message,recommendations)
     sensorID = random.randint(1,nSensors)
     objectID = random.randint(1,nObjects)
     message = {'type':'missedPass', 'time':time.time(), \
         'sensorID':sensorID, 'objectID':objectID, 'priority':'low'}
     recommendations = readMessage(message)
     validateRecommendations(recommendations)
-    print('Test 1: Missed Pass',message,recommendations)
 
     # Test 2: Multiple consecutive missed passes for an object
     #   Generate alert
@@ -148,6 +148,7 @@ def testSsaExpert():
     #       - estimate importance of UCT (size, orbit)
     #       - evaluate probability of collision
     #       - determine potential origin
+    print('Test 5: UCT detected')
     sensorID = random.randint(1,nSensors)
     objectSize = random.randint(minSize,maxSize)
     message = {'type':'observation', 'time':time.time(), \
@@ -160,6 +161,7 @@ def testSsaExpert():
 
     # Test 6: Normal pass
     #   Generate tasking to evaluate data quality and update catalog
+    print('Test 6: Normal pass')
     sensorID = random.randint(1,nSensors)
     objectSize = random.randint(minSize,maxSize)
     message = {'type':'observation', 'time':time.time(), \
@@ -172,6 +174,7 @@ def testSsaExpert():
 
     # Test 7: Launch notification
     #   Generate sensor tasking to support Launch
+    print('Test 7: Launch notification')
     message = {'type':'launchNotification', 'time':time.time(), \
         'launchTime':(time.time()-random.randint(1,10)),\
         'launchPoint':[random.randint(0,90),random.randint(-180,180)],\
